@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Siswa;
+use App\Models\User;
 
 class SiswaController extends Controller
 {
@@ -61,6 +62,12 @@ class SiswaController extends Controller
     {
         $siswa = Siswa::find($id);
         $siswa->delete();
+
+        // Jika id_siswa sudah ada pada tbl_users, maka hapus juga akun siswa tersebut
+        $user = User::where('id_siswa', $id)->first();
+        if ($user) {
+            $user->delete();
+        }
 
         return redirect()->route('data.siswa')->with('success', 'Siswa berhasil dihapus');
     }

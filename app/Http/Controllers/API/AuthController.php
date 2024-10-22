@@ -23,7 +23,7 @@ class AuthController extends Controller
 
         if (!$siswa) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'NIS tidak ditemukan di database siswa.'
             ], 404);
         }
@@ -32,14 +32,14 @@ class AuthController extends Controller
         $user = User::where('nis', $nis)->first();
         if ($user) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Akun dengan NIS ini sudah terdaftar.'
             ], 409);
         }
 
         // Jika NIS ada dan belum digunakan
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'message' => 'NIS valid. Silakan lanjutkan ke pendaftaran akun.',
             'siswa' => $siswa
         ], 200);
@@ -93,8 +93,8 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Akun berhasil didaftarkan dan data siswa diperbarui.',
+            'success' => true,
+            'message' => 'Akun berhasil didaftarkan. Silahkan login!!',
             'user' => $user,
             'siswa' => $siswa
         ], 201);
@@ -123,14 +123,14 @@ class AuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'message' => 'Login berhasil.',
                 'token' => $token,
             ], 200);
         }
 
         return response()->json([
-            'status' => 'error',
+            'success' => false,
             'message' => 'Email atau password salah.',
         ], 401);
     }
@@ -144,7 +144,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'message' => 'Logout berhasil.',
         ], 200);
     }
@@ -163,7 +163,7 @@ class AuthController extends Controller
         $user = User::where('id_user', auth()->user()->id_user)->with('siswa')->first();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'message' => 'Data profil berhasil diperbarui.',
             'user' => $user
         ], 200);
