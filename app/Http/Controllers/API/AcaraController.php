@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Acara;
+use App\Models\AcaraSekolah;
+use App\Models\Hari;
 use App\Models\PesertaAcara;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -46,6 +48,102 @@ class AcaraController extends Controller
             'data' => $acara,
         ], 200);
     }
+
+    public function showUpcomingEvent()
+    {
+        $currentDateTime = Carbon::now();
+
+        // Ambil acara utama yang akan datang berdasarkan tanggal dan waktu
+        $acaraUtama = Acara::where('status_acara', 'aktif')
+            ->whereDate('tanggal_acara', '>=', $currentDateTime->toDateString())
+            ->orderBy('tanggal_acara')
+            ->orderBy('waktu_mulai')
+            ->first();
+
+        // Map data hari dan acara sekolah terkait
+        $harian = Hari::all();
+        $acaraSekolah = AcaraSekolah::all();
+        $harianWithAcara = $harian->map(function ($hari) use ($currentDateTime, $acaraSekolah) {
+            $acaraUntukHari = $acaraSekolah->where('id_hari', $hari->id_hari)->values();
+            $tanggalAcara = null;
+
+            $daysOfWeek = [
+                'Senin' => Carbon::MONDAY,
+                'Selasa' => Carbon::TUESDAY,
+                'Rabu' => Carbon::WEDNESDAY,
+                'Kamis' => Carbon::THURSDAY,
+                'Jumat' => Carbon::FRIDAY,
+                'Sabtu' => Carbon::SATURDAY,
+                'Minggu' => Carbon::SUNDAY,
+            ];
+
+            if (array_key_exists($hari->nama_hari, $daysOfWeek)) {
+                $diff = $daysOfWeek[$hari->nama_hari] - $currentDateTime->dayOfWeek;
+                if ($diff <= 0) {
+                    $diff += 7;
+                }
+                $tanggalAcara = $currentDateTime->copy()->addDays($diff)->format('Y-m-d');
+            }
+
+            if ($acaraUntukHari->isNotEmpty() && $tanggalAcara) {
+                $tanggalAcara = Carbon::parse($tanggalAcara)->format('d M Y');
+            }
+
+            $hari->acara_sekolah = $acaraUntukHari;
+            $hari->tanggal_acara = $tanggalAcara;
+
+            return $hari;
+        })->sortBy(function ($hari) {
+            return $hari->tanggal_acara ? Carbon::parse($hari->tanggal_acara)->timestamp : PHP_INT_MAX;
+        })->values();
+
+        $acaraSekolahTerdekat = $harianWithAcara->firstWhere('tanggal_acara', '!=', null);
+
+        $acaraTerdekat = null;
+        if ($acaraUtama && $acaraSekolahTerdekat) {
+            $acaraUtamaDateTime = Carbon::parse($acaraUtama->tanggal_acara);
+            $acaraSekolahDateTime = Carbon::parse($acaraSekolahTerdekat->tanggal_acara);
+
+            $acaraTerdekat = ($acaraUtamaDateTime->lte($acaraSekolahDateTime)) ? $acaraUtama : $acaraSekolahTerdekat->acara_sekolah->first();
+            if ($acaraTerdekat instanceof AcaraSekolah) {
+                $acaraTerdekat->tanggal_acara = $acaraSekolahTerdekat->tanggal_acara;
+            }
+        } elseif ($acaraUtama) {
+            $acaraTerdekat = $acaraUtama;
+        } elseif ($acaraSekolahTerdekat) {
+            $acaraTerdekat = $acaraSekolahTerdekat->acara_sekolah->first();
+            $acaraTerdekat->tanggal_acara = $acaraSekolahTerdekat->tanggal_acara;
+        }
+
+        if (!$acaraTerdekat) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada acara yang akan datang',
+            ], 404);
+        }
+
+        $data = [
+            'id_acara' => $acaraTerdekat instanceof Acara ? $acaraTerdekat->id_acara : null,
+            'id_acara_sekolah' => $acaraTerdekat instanceof AcaraSekolah ? $acaraTerdekat->id_acara_sekolah : null,
+            'nama_acara' => $acaraTerdekat->nama_acara,
+            'jenis_acara' => $acaraTerdekat->jenis_acara,
+            'tingkat' => $acaraTerdekat->tingkat,
+            'deskripsi' => $acaraTerdekat->deskripsi,
+            'tanggal_acara' => $acaraTerdekat->tanggal_acara,
+            'waktu_mulai' => $acaraTerdekat->waktu_mulai,
+            'waktu_selesai' => $acaraTerdekat->waktu_selesai,
+            'status_acara' => $acaraTerdekat->status_acara,
+            'hari' => ($acaraTerdekat instanceof AcaraSekolah) ? $acaraSekolahTerdekat->nama_hari : null,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Acara Berikutnya Ditemukan',
+            'data' => $data,
+        ], 200);
+    }
+
+
 
 
     public function registerToEvent(Request $request, $id_acara)
