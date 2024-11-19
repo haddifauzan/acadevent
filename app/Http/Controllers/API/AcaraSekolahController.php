@@ -12,18 +12,13 @@ class AcaraSekolahController extends Controller
 {
     public function index()
     {
-        $harian = Hari::all();
-
         // Ambil acara sekolah yang waktu_mulai >= tanggalSelanjutnya
         $acaraSekolah = AcaraSekolah::with('hari')
             ->orderBy('waktu_mulai')
             ->get();
 
-        // Peta hari dengan acara sekolah
-        $harianWithAcara = $harian->map(function ($hari) use ($acaraSekolah) {
-            // Ambil acara sekolah untuk hari tertentu
-            $acaraUntukHari = $acaraSekolah->where('id_hari', $hari->id_hari)->values();
-        
+        // Peta acara sekolah dengan hari
+        $acaraSekolahWithHari = $acaraSekolah->map(function ($acaraSekolah) {
             // Dapatkan tanggal untuk hari saat ini
             $tanggalAcara = Carbon::today();
         
@@ -39,40 +34,43 @@ class AcaraSekolahController extends Controller
             ];
         
             // Cek apakah hari ada dalam array
-            if (array_key_exists($hari->nama_hari, $daysOfWeek)) {
+            if (array_key_exists($acaraSekolah->hari->nama_hari, $daysOfWeek)) {
                 // Menentukan selisih hari
-                $diff = $daysOfWeek[$hari->nama_hari] - $tanggalAcara->dayOfWeek;
+                $diff = $daysOfWeek[$acaraSekolah->hari->nama_hari] - $tanggalAcara->dayOfWeek;
                 if ($diff <= 0) {
                     // Jika hari yang diinginkan sudah lewat, ambil untuk minggu depan
                     $diff += 7;
                 }
         
                 // Set tanggal_acara ke tanggal yang sesuai
-                $tanggalAcara = $tanggalAcara->addDays($diff)->format('Y-m-d');
+                $tanggalAcara = $tanggalAcara->addDays($diff)->format('d M Y');
             } else {
                 // Jika nama hari tidak valid, set menjadi null
                 $tanggalAcara = null;
             }
         
             // Update tanggal_acara jika ada acara untuk hari ini
-            if ($acaraUntukHari->isNotEmpty()) {
-                $tanggalAcara = Carbon::parse($tanggalAcara . ' ' . $acaraUntukHari->first()->waktu_mulai)->format('Y-m-d H:i:s');
-            } else {
-                $tanggalAcara = null; // Set menjadi null jika tidak ada acara
-            }
+            $acaraSekolah->tanggal_acara = $tanggalAcara; // Tambahkan tanggal_acara
+            return $acaraSekolah;
+        })->sortBy(function ($acaraSekolah) {
+            return $acaraSekolah->tanggal_acara ? Carbon::parse($acaraSekolah->tanggal_acara)->timestamp : PHP_INT_MAX;
+        })->values();
+
+        // Tampilkan data acara terlebih dahulu, baru tampilkan hari nya
+        $harian = Hari::all();
+        $harianWithAcara = $harian->map(function ($hari) use ($acaraSekolahWithHari) {
+            // Ambil acara sekolah untuk hari tertentu
+            $acaraUntukHari = $acaraSekolahWithHari->where('id_hari', $hari->id_hari)->values();
         
             $hari->acara_sekolah = $acaraUntukHari;
-            $hari->tanggal_acara = $tanggalAcara; // Tambahkan tanggal_acara
             return $hari;
-        })->sortBy(function ($hari) {
-            return $hari->tanggal_acara ? Carbon::parse($hari->tanggal_acara)->timestamp : PHP_INT_MAX;
         })->values();
 
         // Kembalikan data dengan tanggal selanjutnya
         return response()->json([
             'success' => true,
             'message' => 'Daftar Acara Sekolah Ditemukan',
-            'hari' => $harianWithAcara
+            'data' => $acaraSekolahWithHari,
         ]);
     }
 
@@ -113,7 +111,7 @@ class AcaraSekolahController extends Controller
             }
 
             // Set tanggal_acara ke tanggal yang sesuai
-            $tanggalAcara = $tanggalAcara->addDays($diff)->format('Y-m-d');
+            $tanggalAcara = $tanggalAcara->addDays($diff)->format('d M Y');
         } else {
             // Jika nama hari tidak valid, set menjadi null
             $tanggalAcara = null;

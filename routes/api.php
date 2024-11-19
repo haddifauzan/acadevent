@@ -7,6 +7,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\AcaraController;
 use App\Http\Controllers\API\PesertaAcaraController;
 use App\Http\Controllers\API\AcaraSekolahController;
+use App\Http\Controllers\API\SemuaAcaraController;
 
 
 /*
@@ -29,18 +30,22 @@ Route::middleware([EnsureFrontendRequestsAreStateful::class])->group(function ()
 
         // Menu Acara
         Route::get('/acara', [AcaraController::class, 'index']);
+        Route::get('/acara-sekolah', [AcaraSekolahController::class, 'index']);
+        
+        Route::get('/acara-sekolah/{id}', [AcaraSekolahController::class, 'show']);
         Route::get('/acara/{id}', [AcaraController::class, 'show']);
-        Route::post('/acara/{id_acara}/daftar', [AcaraController::class, 'registerToEvent']);
-        Route::post('/acara/{id_acara}/kehadiran', [AcaraController::class, 'submitKehadiran']);
-        Route::get('/acara/{id_acara}/peserta', [PesertaAcaraController::class, 'getPeserta']);
+        
+
+        Route::post('/acara/daftar/{id_acara}', [AcaraController::class, 'registerToEvent']);
+        Route::post('/acara/kehadiran/{id_acara}', [AcaraController::class, 'submitKehadiran']);
+        Route::get('/acara/peserta/{id_acara}', [PesertaAcaraController::class, 'getPeserta']);
         Route::get('/history-acara', [AcaraController::class, 'historyAcara']);
 
         Route::get('/acara-berikutnya', [AcaraController::class, 'showUpcomingEvent']);
 
-
-        Route::get('/acara-sekolah', [AcaraSekolahController::class, 'index']);
-        Route::get('/acara-sekolah/{id}', [AcaraSekolahController::class, 'show']);
-        
+        Route::get('/semua-acara', [SemuaAcaraController::class, 'index']);
+        Route::get('/acara-minggu-ini', [SemuaAcaraController::class, 'acaraMingguIni']);
+        Route::get('/acara-bulan-ini', [SemuaAcaraController::class, 'acaraBulanIni']);
         
         Route::post('/logout', [AuthController::class, 'logout']);
     });

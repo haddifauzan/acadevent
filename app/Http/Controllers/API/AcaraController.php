@@ -18,7 +18,11 @@ class AcaraController extends Controller
     public function index()
     {
         // Mendapatkan semua acara tanpa pagination
-        $acara = Acara::all();
+        $acara = Acara::where("status_acara", ["aktif", "berlangsung", "batal"])->get()
+        ->map(function ($acara) {
+            $acara->tanggal_acara = Carbon::parse($acara->tanggal_acara)->format('d M Y');
+            return $acara;
+        });;
 
         // Mengirimkan response dalam format JSON
         return response()->json([
@@ -31,7 +35,11 @@ class AcaraController extends Controller
     public function show($id)
     {
         // Mencari acara berdasarkan ID
-        $acara = Acara::withCount('users')->find($id); // Memuat relasi users (peserta) dan menghitung jumlah peserta
+        $acara = Acara::withCount('users')->find($id);
+
+        if ($acara) {
+            $acara->tanggal_acara = Carbon::parse($acara->tanggal_acara)->format('d M Y');
+        }
 
         // Jika acara tidak ditemukan, kembalikan response 404
         if (!$acara) {
@@ -59,6 +67,10 @@ class AcaraController extends Controller
             ->orderBy('tanggal_acara')
             ->orderBy('waktu_mulai')
             ->first();
+
+        if ($acaraUtama) {
+            $acaraUtama->tanggal_acara = Carbon::parse($acaraUtama->tanggal_acara)->format('d M Y');
+        }
 
         // Map data hari dan acara sekolah terkait
         $harian = Hari::all();
@@ -144,8 +156,6 @@ class AcaraController extends Controller
     }
 
 
-
-
     public function registerToEvent(Request $request, $id_acara)
     {
         // Validasi input, termasuk password
@@ -191,7 +201,7 @@ class AcaraController extends Controller
 
         // Cek apakah user sudah mendaftar ke acara ini
         $isAlreadyRegistered = PesertaAcara::where('id_acara', $id_acara)
-            ->where('id_user', $user->id)
+            ->where('id_user', $user->id_user)
             ->exists();
 
         if ($isAlreadyRegistered) {
@@ -247,11 +257,8 @@ class AcaraController extends Controller
             ], 403);
         }
 
-        // Ambil waktu saat ini
-        $currentTime = Carbon::now();
-
         // Cek apakah acara sudah dimulai dan belum selesai
-        if ($currentTime->between($acara->waktu_mulai, $acara->waktu_selesai)) {
+        if ($acara->status_acara === "berlangsung") {
             // Cek apakah kode kehadiran cocok
             if ($request->kode_kehadiran === $acara->kode_kehadiran) {
                 // Update status kehadiran menjadi 'hadir'
@@ -262,7 +269,7 @@ class AcaraController extends Controller
             } else {
                 return response()->json(['success' => false,'message' => 'Kode kehadiran salah.'], 400);
             }
-        } elseif ($currentTime->greaterThan($acara->waktu_selesai)) {
+        } elseif ($acara->status_acara === "selesai") {
             // Jika acara sudah selesai dan user belum absen, set status ke 'tidak hadir'
             if (!$peserta->status_kehadiran || $peserta->status_kehadiran === 'belum hadir') {
                 $peserta->status_kehadiran = 'tidak hadir';
@@ -283,7 +290,8 @@ class AcaraController extends Controller
         // Query untuk mendapatkan acara yang diikuti oleh user
         $history = PesertaAcara::where('id_user', $userId)
             ->with(['acara' => function($query) {
-                $query->select('id_acara', 'nama_acara', 'tanggal_acara', 'status_acara');
+                $query->select('id_acara', 'nama_acara', 'tanggal_acara', 'status_acara')
+                    ->addSelect(\DB::raw("DATE_FORMAT(tanggal_acara, '%d %b %Y') as tanggal_acara"));
             }])
             ->get();
 
@@ -294,6 +302,5 @@ class AcaraController extends Controller
             'data' => $history
         ], 200);
     }
-
 
 }

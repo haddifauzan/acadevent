@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#eventDetailModal').find('#eventType').text(info.event.extendedProps.jenis_acara);
             $('#eventDetailModal').find('#eventLevel').text(info.event.extendedProps.tingkat);
             $('#eventDetailModal').find('#eventStartTime').text(info.event.start.toLocaleString());
-            $('#eventDetailModal').find('#eventEndTime').text(info.event.end.toLocaleString());
+            $('#eventDetailModal').find('#eventEndTime').text(info.event.end.toLocaleString());  
             $('#eventDetailModal').find('#eventStatus').text(info.event.extendedProps.status_acara);
             $('#eventDetailModal').modal('show');
         },
