@@ -16,8 +16,11 @@ class AcaraController extends Controller
     {
         $search = $request->get('search');
         $acara = Acara::when($search, function ($query, $search) {
-            return $query->where('nama_acara', 'like', '%' . $search . '%');
-        })->paginate(6);
+                return $query->where('nama_acara', 'like', '%' . $search . '%');
+            })
+            ->orderBy('tanggal_acara', 'desc')
+            ->orderBy('waktu_mulai', 'desc')
+            ->paginate(12);
 
         return view('admin.acara-umum.index', compact('acara'));
     }

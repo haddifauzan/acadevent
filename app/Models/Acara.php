@@ -9,6 +9,9 @@ class Acara extends Model
 {
     use HasFactory;
 
+    const STATUS_BERLANGSUNG = 'berlangsung';
+    const STATUS_SELESAI = 'selesai';
+
     protected $table = 'tbl_acara';
     protected $primaryKey = 'id_acara';
 

@@ -8,7 +8,7 @@
 	<meta name="author" content="AdminKit">
 
 	<link rel="preconnect" href="https://fonts.gstatic.com">
-	<link rel="shortcut icon" href="img/icons/icon-48x48.png" />
+	<link rel="shortcut icon" href="{{asset('assets/img/icons/loginacad.jpg')}}" />
 
 	<link rel="canonical" href="https://demo-basic.adminkit.io/pages-sign-in.html" />
 
@@ -37,9 +37,9 @@
 							<div class="card-body">
 								<div class="m-sm-4">
 									<div class="d-flex align-items-center justify-content-center my-3">
-										<img src="{{asset('assets/img/icons/icon-48x48.png')}}" class="img-fluid" alt="AdminKit" width="32" height="32" />
+										<img src="{{asset('assets/img/icons/loginacad.jpg')}}" class="img-fluid" alt="AdminKit" width="80" height="80" />
 										<div class="ms-2">
-											<h4 class="m-0">Admin AcadEvent</h4>
+											<h3 class="m-0 fw-bold">Admin AcadEvent</h3>
 										</div>
 									</div>
 									<form action="{{ route('login-proses') }}" method="POST">

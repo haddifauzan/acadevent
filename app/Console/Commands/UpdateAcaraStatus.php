@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -14,24 +15,33 @@ class UpdateStatusAcara extends Command
     {
         $now = Carbon::now();
 
-        // Update acara yang sedang berlangsung
-        Acara::where('tanggal_acara', '<=', $now->format('Y-m-d'))
-            ->where('waktu_mulai', '<=', $now->format('H:i:s'))
-            ->where('waktu_selesai', '>', $now->format('H:i:s'))
-            ->where('status_acara', '!=', 'berlangsung')
-            ->update(['status_acara' => 'berlangsung']);
+        try {
+            // Status acara
+            $statusBerlangsung = Acara::STATUS_BERLANGSUNG;
+            $statusSelesai = Acara::STATUS_SELESAI;
 
-        // Update acara yang sudah selesai
-        Acara::where('tanggal_acara', '<', $now->format('Y-m-d'))
-            ->orWhere(function ($query) use ($now) {
-                $query->where('tanggal_acara', '=', $now->format('Y-m-d'))
-                      ->where('waktu_selesai', '<', $now->format('H:i:s'));
-            })
-            ->where('status_acara', '!=', 'selesai')
-            ->update(['status_acara' => 'selesai']);
-        
-        $this->info('Status acara berhasil diperbarui');
+            // Update acara yang sedang berlangsung
+            $updatedBerlangsung = Acara::whereDate('tanggal_acara', '<=', $now->format('Y-m-d'))
+                ->whereTime('waktu_mulai', '<=', $now->format('H:i:s'))
+                ->whereTime('waktu_selesai', '>', $now->format('H:i:s'))
+                ->where('status_acara', '!=', $statusBerlangsung)
+                ->update(['status_acara' => $statusBerlangsung]);
+
+            // Update acara yang sudah selesai
+            $updatedSelesai = Acara::whereDate('tanggal_acara', '<', $now->format('Y-m-d'))
+                ->orWhere(function ($query) use ($now) {
+                    $query->whereDate('tanggal_acara', '=', $now->format('Y-m-d'))
+                          ->whereTime('waktu_selesai', '<', $now->format('H:i:s'));
+                })
+                ->where('status_acara', '!=', $statusSelesai)
+                ->update(['status_acara' => $statusSelesai]);
+
+            $this->info("Status acara berhasil diperbarui. 
+                Acara berlangsung: $updatedBerlangsung, 
+                Acara selesai: $updatedSelesai");
+        } catch (\Exception $e) {
+            $this->error("Terjadi kesalahan saat memperbarui status acara: " . $e->getMessage());
+        }
     }
 }
-
-
+    
